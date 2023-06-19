@@ -58,6 +58,5 @@ _update_repository.bat
 _changes.md
 *.ini
 _copyright_check.txt
-*.geojson
 v3_ideas.md
 data
