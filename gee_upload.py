@@ -93,14 +93,24 @@ def sar_tc_sn():
     # create a HashMap to hold the parameters for the speckle filter
     speckle_parameters = HashMap()
     speckle_parameters.put('filter', 'Lee')
-    speckle_parameters.put('filterSizeX', 5)
-    speckle_parameters.put('filterSizeY', 5)
+    speckle_parameters.put('filterSizeX', 3)
+    speckle_parameters.put('filterSizeY', 3)
+    speckle_parameters.put('dampingFactor', 2)
+    speckle_parameters.put('windowSize', '7x7')
+    speckle_parameters.put('estimateENL', 'true')
+    speckle_parameters.put('enl', 1.0)
+    speckle_parameters.put('numLooksStr', '1')
+    speckle_parameters.put('targetWindowSizeStr', '3x3')
+    speckle_parameters.put('sigmaStr', '0.9')
+    speckle_parameters.put('anSize', '50')
 
     # create a HashMap to hold the parameters for the terrain correction
     terrain_parameters = HashMap()
     terrain_parameters.put('demName', 'SRTM 3Sec')
-    terrain_parameters.put('pixelSpacingInMeter', 10.0)
-    terrain_parameters.put('imgResamplingMethod', 'BICUBIC_INTERPOLATION')
+    terrain_parameters.put('pixelSpacingInMeter', 30.0)
+    terrain_parameters.put('demResamplingMethod', 'BILINEAR_INTERPOLATION')
+    terrain_parameters.put('imgResamplingMethod', 'BILINEAR_INTERPOLATION')
+    terrain_parameters.put('mapProjection', 'WGS84(DD)')
 
     # apply the terrain correction
     terrain_corrected = GPF.createProduct('Terrain-Correction', terrain_parameters, product)
