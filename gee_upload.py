@@ -84,46 +84,49 @@ def upload_by_log(filepath='data/subset'):
             os.system('geeadd delete --id '+'projects/proj5-dataset/assets/proj5_dataset/'+target_id+'_'+tif_file.split('/')[-1][:-4])
             upload(tif_file)
 
-def sar_tc_sn():
+def sar_tc_sn(file_path='/Users/zhaoyu/PycharmProjects/eodms-cli/data/'):
 
+    file_list = glob.glob(os.path.join(file_path, '*.zip'))
+    for file in file_list:
+        file_name=file.split('/')[-1].split('.')[0]
+        # load the Sentinel-1 image
+        product = ProductIO.readProduct(file)
 
-    # load the Sentinel-1 image
-    product = ProductIO.readProduct('/Users/zhaoyu/PycharmProjects/eodms-cli/data/RCM1_OK2388975_PK2567859_1_SC30MCPA_20230523_011049_CH_CV_MLC.zip')
+        # create a HashMap to hold the parameters for the speckle filter
+        speckle_parameters = HashMap()
+        speckle_parameters.put('filter', 'Lee')
+        speckle_parameters.put('filterSizeX', 3)
+        speckle_parameters.put('filterSizeY', 3)
+        speckle_parameters.put('dampingFactor', 2)
+        speckle_parameters.put('windowSize', '7x7')
+        speckle_parameters.put('estimateENL', 'true')
+        speckle_parameters.put('enl', 1.0)
+        speckle_parameters.put('numLooksStr', '1')
+        speckle_parameters.put('targetWindowSizeStr', '3x3')
+        speckle_parameters.put('sigmaStr', '0.9')
+        speckle_parameters.put('anSize', '50')
 
-    # create a HashMap to hold the parameters for the speckle filter
-    speckle_parameters = HashMap()
-    speckle_parameters.put('filter', 'Lee')
-    speckle_parameters.put('filterSizeX', 3)
-    speckle_parameters.put('filterSizeY', 3)
-    speckle_parameters.put('dampingFactor', 2)
-    speckle_parameters.put('windowSize', '7x7')
-    speckle_parameters.put('estimateENL', 'true')
-    speckle_parameters.put('enl', 1.0)
-    speckle_parameters.put('numLooksStr', '1')
-    speckle_parameters.put('targetWindowSizeStr', '3x3')
-    speckle_parameters.put('sigmaStr', '0.9')
-    speckle_parameters.put('anSize', '50')
+        # create a HashMap to hold the parameters for the terrain correction
+        terrain_parameters = HashMap()
+        terrain_parameters.put('demName', 'SRTM 3Sec')
+        terrain_parameters.put('pixelSpacingInMeter', 30.0)
+        terrain_parameters.put('demResamplingMethod', 'BILINEAR_INTERPOLATION')
+        terrain_parameters.put('imgResamplingMethod', 'BILINEAR_INTERPOLATION')
+        terrain_parameters.put('mapProjection', 'WGS84(DD)')
 
-    # create a HashMap to hold the parameters for the terrain correction
-    terrain_parameters = HashMap()
-    terrain_parameters.put('demName', 'SRTM 3Sec')
-    terrain_parameters.put('pixelSpacingInMeter', 30.0)
-    terrain_parameters.put('demResamplingMethod', 'BILINEAR_INTERPOLATION')
-    terrain_parameters.put('imgResamplingMethod', 'BILINEAR_INTERPOLATION')
-    terrain_parameters.put('mapProjection', 'WGS84(DD)')
+        # apply the terrain correction
+        terrain_corrected = GPF.createProduct('Terrain-Correction', terrain_parameters, product)
 
-    # apply the terrain correction
-    terrain_corrected = GPF.createProduct('Terrain-Correction', terrain_parameters, product)
+        # apply the speckle filter
+        speckle_filtered = GPF.createProduct('Speckle-Filter', speckle_parameters, terrain_corrected)
 
-    # apply the speckle filter
-    speckle_filtered = GPF.createProduct('Speckle-Filter', speckle_parameters, terrain_corrected)
+        # write the terrain-corrected image to a file
+        output_path = os.path.join('/Volumes/yussd/output_rcm', file_name+'.tif')
+        ProductIO.writeProduct(speckle_filtered, output_path, 'GeoTIFF-BigTIFF')
 
-    # write the terrain-corrected image to a file
-    ProductIO.writeProduct(speckle_filtered, 'output.tif', 'GeoTIFF-BigTIFF')
-
-    print('finish')
+        print('finish')
 
 if __name__=='__main__':
-    sar_tc_sn()
+    sar_tc_sn(file_path='/Users/zhaoyu/PycharmProjects/eodms-cli/data/')
     # upload_in_parallel(True, 'data/*/imagery')
     # upload_by_log()
