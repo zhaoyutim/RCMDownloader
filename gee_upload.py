@@ -3,16 +3,14 @@ import multiprocessing
 import os
 import subprocess
 import sys
-sys.path.append('/Users/zhaoyu/.snap/snap-python')
+sys.path.append('C:\\Users\\Yu\\.snap\\snap-python')
 from osgeo import gdal
 from snappy import ProductIO, HashMap, GPF
 
-
 def upload_to_gcloud(file):
     print('Upload to gcloud')
-    file_name = file.split('/')[-1]
-    id = file.split('/')[-2]
-    upload_cmd = 'gsutil cp ' + file + ' gs://ai4wildfire/VNPPROJ5/'+id+'/' + file_name
+    file_name = file.split('\\')[-1]
+    upload_cmd = 'gsutil cp ' + file + ' gs://ai4wildfire/rcm/'+ file_name
     print(upload_cmd)
     os.system(upload_cmd)
     print('finish uploading' + file_name)
@@ -20,13 +18,11 @@ def upload_to_gcloud(file):
 
 def upload_to_gee(file):
     print('start uploading to gee')
-    file_name = file.split('/')[-1]
-    id = file.split('/')[-2]
-    date = file_name[6:16]
-    time = file.split('/')[-1][17:21]
-    time_start = date + 'T' + time[:2] + ':' + time[2:] + ':00'
-    cmd = 'earthengine upload image --time_start ' + time_start + ' --asset_id=projects/proj5-dataset/assets/proj5_dataset/' + \
-          id+'_'+file_name[:-4] + ' --pyramiding_policy=sample gs://ai4wildfire/VNPPROJ5/'+id+'/' + file_name
+    file_name = file.split('\\')[-1]
+    date = file_name.split('_')[-5]
+    date = date[:4]+'-'+date[4:6]+'-'+date[6:]
+    time_start = date + 'T10:00:00'
+    cmd = 'earthengine upload image --time_start ' + time_start + ' --asset_id=projects/rcm-data/assets/rcm-data/' + file_name[:-4] + ' --pyramiding_policy=sample gs://ai4wildfire/rcm/'+ file_name
     print(cmd)
     subprocess.call(cmd.split())
     print('Uploading in progress for image ' + time_start)
@@ -37,7 +33,7 @@ def upload(file):
 
 def upload_in_parallel(import_all=True, filepath='data/subset'):
     if import_all:
-        file_list = glob.glob(os.path.join(filepath, 'CANADA', '*.tif'))
+        file_list = glob.glob(os.path.join(filepath, '*.tif'))
     else:
         log_path = 'log/sanity_check_gee*.log'
         log_list = glob.glob(log_path)
@@ -51,16 +47,6 @@ def upload_in_parallel(import_all=True, filepath='data/subset'):
     results = []
     with multiprocessing.Pool(processes=8) as pool:
         for file in file_list:
-            id = file.split('/')[-2]
-            date = file.split('/')[-1][6:16]
-            time = file.split('/')[-1][17:21]
-            vnp_json = open(glob.glob(os.path.join('data/VNPL1', id, date, 'D', '*.json'))[0], 'rb')
-            import json
-            def get_name(json):
-                return json.get('name').split('.')[2]
-            vnp_time = list(map(get_name, json.load(vnp_json)['content']))
-            if time not in vnp_time or 'IMG' not in file:
-                continue
             result = pool.apply_async(upload, (file,))
             results.append(result)
         results = [result.get() for result in results if result is not None]
@@ -121,12 +107,12 @@ def sar_tc_sn(file_path='/Users/zhaoyu/PycharmProjects/eodms-cli/data/'):
         speckle_filtered = GPF.createProduct('Speckle-Filter', speckle_parameters, terrain_corrected)
 
         # write the terrain-corrected image to a file
-        output_path = os.path.join('/Volumes/yussd/output_rcm', file_name+'.tif')
+        output_path = os.path.join('G:\\rcm\\output_rcm', file_name+'.tif')
         ProductIO.writeProduct(speckle_filtered, output_path, 'GeoTIFF-BigTIFF')
 
         print('finish')
 
 if __name__=='__main__':
-    sar_tc_sn(file_path='/Users/zhaoyu/PycharmProjects/eodms-cli/data/')
-    # upload_in_parallel(True, 'data/*/imagery')
+    # sar_tc_sn(file_path='E:\\tif_images_donnie_creek\\')
+    upload_in_parallel(True, 'E:\\tif_images_donnie_creek\\')
     # upload_by_log()
